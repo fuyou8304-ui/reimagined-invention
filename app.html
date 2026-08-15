@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>フリマ出品アシスタント</title>
+  <style>
+    :root {
+      --primary-color: #00b900;
+      --bg-color: #f4f5f7;
+      --card-bg: #ffffff;
+      --text-color: #333333;
+      --border-color: #dddddd;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    body {
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      padding: 16px;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+    h1 {
+      font-size: 1.2rem;
+      text-align: center;
+      margin-bottom: 16px;
+    }
+    .card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    }
+    label {
+      display: block;
+      font-weight: bold;
+      font-size: 0.85rem;
+      margin-bottom: 6px;
+    }
+    input, select, textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      font-size: 0.95rem;
+      margin-bottom: 12px;
+    }
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+    .chip {
+      padding: 8px 12px;
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      font-size: 0.85rem;
+      cursor: pointer;
+      background: #f9f9f9;
+      user-select: none;
+    }
+    .chip.active {
+      background: var(--primary-color);
+      color: #fff;
+      border-color: var(--primary-color);
+    }
+    textarea {
+      height: 180px;
+      resize: vertical;
+    }
+    .btn {
+      width: 100%;
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      padding: 14px;
+      font-size: 1rem;
+      font-weight: bold;
+      border-radius: 8px;
+      cursor: pointer;
+      text-align: center;
+    }
+    .btn:active {
+      opacity: 0.8;
+    }
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 10px 20px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>📦 フリマ出品アシスタント</h1>
+
+  <div class="card">
+    <label>商品名</label>
+    <input type="text" id="itemName" placeholder="例: ユニクロ Tシャツ Lサイズ">
+
+    <label>商品の状態</label>
+    <div class="chips" id="statusChips">
+      <div class="chip active" data-value="新品・未使用">新品・未使用</div>
+      <div class="chip" data-value="目立った傷や汚れなし">目立った傷や汚れなし</div>
+      <div class="chip" data-value="やや傷や汚れあり">やや傷や汚れあり</div>
+    </div>
+
+    <label>発送方法・スピード</label>
+    <select id="shipping">
+      <option value="らくらくメルカリ便（24時間以内発送）">らくらくメルカリ便（24時間以内発送）</option>
+      <option value="ゆうゆうメルカリ便（匿名配送）">ゆうゆうメルカリ便（匿名配送）</option>
+      <option value="普通郵便（定形・定形外）">普通郵便（定形・定形外）</option>
+    </select>
+
+    <label>アピールポイント（複数選択可）</label>
+    <div class="chips" id="tagChips">
+      <div class="chip active" data-value="即購入OK">即購入OK</div>
+      <div class="chip active" data-value="送料無料">送料無料</div>
+      <div class="chip" data-value="値下げ交渉不可">値下げ交渉不可</div>
+      <div class="chip" data-value="ペット・喫煙者なし">ペット・喫煙者なし</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <label>生成された商品説明文</label>
+    <textarea id="resultText" readonly></textarea>
+    <button class="btn" id="copyBtn">商品説明文をコピー</button>
+  </div>
+
+  <div class="toast" id="toast">コピーしました！</div>
+
+  <script>
+    const itemName = document.getElementById('itemName');
+    const shipping = document.getElementById('shipping');
+    const resultText = document.getElementById('resultText');
+    const copyBtn = document.getElementById('copyBtn');
+    const toast = document.getElementById('toast');
+
+    let selectedStatus = '新品・未使用';
+    let selectedTags = ['即購入OK', '送料無料'];
+
+    // チップの選択制御（単一選択）
+    document.querySelectorAll('#statusChips .chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        document.querySelectorAll('#statusChips .chip').forEach(c => c.classList.remove('active'));
+        chip.classList.add('active');
+        selectedStatus = chip.dataset.value;
+        generateText();
+      });
+    });
+
+    // チップの選択制御（複数選択）
+    document.querySelectorAll('#tagChips .chip').forEach(chip => {
+      chip.addEventListener('click', () => {
+        chip.classList.toggle('active');
+        const val = chip.dataset.value;
+        if (selectedTags.includes(val)) {
+          selectedTags = selectedTags.filter(t => t !== val);
+        } else {
+          selectedTags.push(val);
+        }
+        generateText();
+      });
+    });
+
+    // テキスト生成処理
+    function generateText() {
+      const name = itemName.value.trim() || '【商品名を入力してください】';
+      const tagsStr = selectedTags.map(t => `【${t}】`).join(' ');
+
+      const text = `ご覧いただきありがとうございます！\n${tagsStr}\n\n【商品名】\n${name}\n\n【商品の状態】\n${selectedStatus}\n※自宅保管のため、ご理解のある方のみご購入をお願いいたします。\n\n【発送方法】\n${shipping.value}\n丁寧に梱包して発送いたします。\n\nご不明な点があればお気軽にコメントください！`;
+
+      resultText.value = text;
+    }
+
+    // イベントリスナー
+    itemName.addEventListener('input', generateText);
+    shipping.addEventListener('change', generateText);
+
+    // コピー機能
+    copyBtn.addEventListener('click', () => {
+      navigator.clipboard.writeText(resultText.value).then(() => {
+        toast.style.display = 'block';
+        setTimeout(() => {
+          toast.style.display = 'none';
+        }, 2000);
+      });
+    });
+
+    // 初期化
+    generateText();
+  </script>
+</body>
+</html>
