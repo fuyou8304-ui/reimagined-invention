@@ -1,0 +1,56 @@
+<!doctype html><html lang="ja"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>LINEスタンプメーカー</title>
+<style>
+body{margin:0;background:#f5f7f6;color:#18211d;font-family:-apple-system,BlinkMacSystemFont,"Noto Sans JP",sans-serif}
+main{max-width:760px;margin:auto;padding:18px 14px 40px}.top{display:flex;justify-content:space-between;align-items:center;gap:10px}
+h1{font-size:23px;margin:0}.sub{color:#69756f;font-size:12px}.card{background:#fff;border:1px solid #e1e7e4;border-radius:16px;padding:16px;margin-top:14px;box-shadow:0 3px 14px #00000008}
+h2{font-size:16px;margin:0 0 12px}.upload{border:2px dashed #b8c8c0;border-radius:14px;padding:35px 15px;text-align:center}.upload input{display:none}
+.btn{border:0;border-radius:11px;padding:12px 15px;font-weight:800;font-size:14px}.green{background:#06c755;color:white}.dark{background:#17211d;color:white}.white{background:white;border:1px solid #d5dfda}
+.row{display:flex;gap:8px;flex-wrap:wrap}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.field label{display:block;font-size:12px;color:#69756f;margin-bottom:5px}select,input,textarea{width:100%;padding:10px;border:1px solid #d5dfda;border-radius:9px;font:inherit;background:white}.preview{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}.item{border:1px solid #e0e6e3;border-radius:11px;padding:7px;text-align:center;background:#fafcfb}.item canvas{width:100%;background:repeating-conic-gradient(#eee 0 25%,#fff 0 50%) 50%/12px 12px;border-radius:7px}.bar{height:9px;background:#e7ece9;border-radius:99px;overflow:hidden}.bar>i{display:block;height:100%;width:0;background:#06c755}.ok{color:#079b49;font-weight:800}.warn{color:#a56a00}
+</style></head><body><main>
+<div class="top"><div><h1>💬 LINEスタンプメーカー</h1><div class="sub">iPhone専用・ブラウザで使うお試し版</div></div><button class="btn green" id="make">作成</button></div>
+
+<div class="card"><h2>① 画像を選ぶ</h2>
+<label class="upload"><input id="file" type="file" accept="image/*"><div style="font-size:42px">📷</div><b>写真・画像をタップして選択</b><div class="sub">選んだ画像はこのページ内で処理します</div></label>
+<div id="info" class="sub" style="margin-top:8px"></div></div>
+
+<div class="card"><h2>② 設定</h2><div class="grid">
+<div class="field"><label>個数</label><select id="count"><option>40</option><option>32</option><option>24</option><option>16</option><option>8</option></select></div>
+<div class="field"><label>文字デザイン</label><select id="design"><option>白文字＋黒フチ</option><option>黒文字＋白フチ</option><option>黄色文字＋黒フチ</option></select></div>
+<div class="field" style="grid-column:1/-1"><label>テーマ</label><input id="theme" value="心の声＆建て前"></div>
+</div></div>
+
+<div class="card"><h2>③ 自動生成</h2><div id="status">画像を選んで「作成」を押してください。</div><div class="bar" style="margin-top:9px"><i id="progress"></i></div></div>
+
+<div class="card"><h2>④ プレビュー</h2><div id="preview" class="preview"></div></div>
+
+<div class="card"><h2>⑤ 販売情報</h2>
+<div class="field"><label>タイトル</label><input id="title" value="毎日使える！心の声＆建て前スタンプ"></div><br>
+<div class="field"><label>説明文</label><textarea id="desc" rows="3">日常会話で使いやすい、心の声と建て前を楽しめるLINEスタンプです。</textarea></div><br>
+<div class="field"><label>タグ</label><input id="tags" value="心の声,建て前,日常会話,面白い,返事,了解,ありがとう"></div>
+</div>
+
+<div class="card"><h2>⑥ 保存</h2><div class="row">
+<button class="btn dark" id="saveAll">画像をまとめて保存</button>
+<button class="btn white" id="saveInfo">販売情報を保存</button>
+</div><p class="sub">※iPhoneでは画像ごとの保存・共有が安定します。ZIP化は本番版で追加します。</p></div>
+</main>
+<script>
+const words=["了解！","ありがとう！","おつかれ！","よろしく！","OK！","ごめん！","今向かってる","あとで連絡する","ちょっと待って","任せて！","無理です","それな","わかる","えっ！？","ほんと？","最高！","助かる！","おめでとう！","おやすみ","おはよう","いってきます","いってらっしゃい","ただいま","おかえり","またね","了解です…","心の声：無理","白目中","今それ言う？","既読です","返信考え中","寝ます","忙しいです","忘れてた！","やらかした","大丈夫！","たぶん","知らんけど","それは無理","お願いします！"];
+let image=null, canvases=[];
+file.onchange=()=>{let f=file.files[0];if(!f)return;let u=URL.createObjectURL(f);image=new Image();image.onload=()=>info.textContent="✓ "+f.name+" / "+image.width+"×"+image.height+"px";image.src=u};
+function makeCanvas(i,text){
+ let c=document.createElement("canvas");c.width=370;c.height=320;let x=c.getContext("2d");
+ let s=Math.min(280/image.width,210/image.height),w=image.width*s,h=image.height*s,px=(370-w)/2,py=8;
+ x.clearRect(0,0,370,320);
+ if(i%4==1){x.save();x.translate(370,0);x.scale(-1,1);x.drawImage(image,370-px-w,py,w,h);x.restore()}
+ else{x.save();x.translate(185,0);x.rotate((i%3-1)*.035);x.drawImage(image,px-185,py,w,h);x.restore()}
+ let fs=text.length>10?24:text.length>7?29:35;x.font="900 "+fs+"px sans-serif";x.textAlign="center";x.textBaseline="bottom";
+ let fill="white",stroke="black";if(design.value=="黒文字＋白フチ"){fill="black";stroke="white"}if(design.value=="黄色文字＋黒フチ"){fill="yellow"}
+ x.lineWidth=9;x.strokeStyle=stroke;x.strokeText(text,185,305);x.fillStyle=fill;x.fillText(text,185,305);return c;
+}
+make.onclick=async()=>{if(!image){alert("先に画像を選んでください");return}let n=+count.value;preview.innerHTML="";canvases=[];status.textContent="作成中…";for(let i=0;i<n;i++){await new Promise(r=>setTimeout(r,25));let c=makeCanvas(i,words[i%words.length]);canvases.push(c);let d=document.createElement("div");d.className="item";d.append(c,document.createElement("br"));let small=document.createElement("small");small.textContent=String(i+1).padStart(2,"0")+" "+words[i%words.length];d.append(small);preview.append(d);progress.style.width=((i+1)/n*100)+"%"}status.innerHTML='<span class="ok">✓ '+n+'個完成</span>'};
+saveAll.onclick=()=>{if(!canvases.length){alert("先に作成してください");return}canvases.forEach((c,i)=>{setTimeout(()=>{c.toBlob(b=>{let a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=String(i+1).padStart(2,"0")+".png";a.click()}, "image/png")},i*120))};
+saveInfo.onclick=()=>{let t="タイトル："+title.value+"\\n\\n説明文："+desc.value+"\\n\\nタグ："+tags.value;let b=new Blob([t],{type:"text/plain"}),a=document.createElement("a");a.href=URL.createObjectURL(b);a.download="line_stamp_info.txt";a.click()};
+</script></body></html>
